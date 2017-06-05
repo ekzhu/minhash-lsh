@@ -207,7 +207,7 @@ func (f *MinhashLSH) Index() {
 	wg.Wait()
 }
 
-// Return candidate keys given the query signature and parameters.
+// Return candidate keys given the query signature.
 func (f *MinhashLSH) Query(sig Signature) []string {
 	result := make([]string, 0)
 	done := make(chan struct{})

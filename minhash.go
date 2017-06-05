@@ -3,30 +3,28 @@ package minhashlsh
 import (
 	"encoding/binary"
 	"hash/fnv"
-	"io"
 	"math/rand"
 
 	minwise "github.com/dgryski/go-minhash"
 )
 
 // The number of byte in a hash value for Minhash
-const HashValueSize = 8
+const hashValueSize = 8
+
+type Signature []uint64
 
 // Represents a MinHash object
 type Minhash struct {
 	mw *minwise.MinWise
 }
 
-// Represents a MinHash signature - an array of hash values
-type Signature []uint64
-
 // Initialize a MinHash object with a seed and the number of
 // hash functions.
 func NewMinhash(seed, numHash int) *Minhash {
 	r := rand.New(rand.NewSource(int64(seed)))
 	b := binary.BigEndian
-	b1 := make([]byte, HashValueSize)
-	b2 := make([]byte, HashValueSize)
+	b1 := make([]byte, hashValueSize)
+	b2 := make([]byte, hashValueSize)
 	b.PutUint64(b1, uint64(r.Int63()))
 	b.PutUint64(b2, uint64(r.Int63()))
 	fnv1 := fnv.New64a()
@@ -53,31 +51,6 @@ func (m *Minhash) Push(b []byte) {
 }
 
 // Export the MinHash signature.
-func (m *Minhash) Signature() Signature {
+func (m *Minhash) Signature() []uint64 {
 	return m.mw.Signature()
-}
-
-// Serialize the siganture into the writer.
-func (sig Signature) Write(w io.Writer) error {
-	for i := range sig {
-		if err := binary.Write(w, binary.BigEndian, sig[i]); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// Deserialize the signature from the reader.
-func (sig Signature) Read(r io.Reader) error {
-	for i := range sig {
-		if err := binary.Read(r, binary.BigEndian, &(sig[i])); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// Compute the serialized length in terms of number of bytes.
-func (sig Signature) ByteLen() int {
-	return len(sig) * HashValueSize
 }
