@@ -15,7 +15,8 @@ type Signature []uint64
 
 // Represents a MinHash object
 type Minhash struct {
-	mw *minwise.MinWise
+	mw   *minwise.MinWise
+	seed int64
 }
 
 // Initialize a MinHash object with a seed and the number of
@@ -41,7 +42,10 @@ func NewMinhash(seed, numHash int) *Minhash {
 		fnv2.Write(b)
 		return fnv2.Sum64()
 	}
-	return &Minhash{minwise.NewMinWise(h1, h2, numHash)}
+	return &Minhash{
+		mw:   minwise.NewMinWise(h1, h2, numHash),
+		seed: int64(seed),
+	}
 }
 
 // Push a new value to the MinHash object.
@@ -53,4 +57,14 @@ func (m *Minhash) Push(b []byte) {
 // Export the MinHash signature.
 func (m *Minhash) Signature() []uint64 {
 	return m.mw.Signature()
+}
+
+// Merge combines the signature of the other Minhash
+// with this one, making this one carry the signature of
+// the union.
+func (m *Minhash) Merge(o *Minhash) {
+	if m.seed != o.seed {
+		panic("Cannot merge Minhash with different seed")
+	}
+	m.mw.Merge(o.mw)
 }
