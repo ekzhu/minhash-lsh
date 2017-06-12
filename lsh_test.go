@@ -33,15 +33,19 @@ func Test_HashKeyFunc64(t *testing.T) {
 }
 
 func Test_MinhashLSH(t *testing.T) {
-	f := NewMinhashLSH16(8, 0.5)
-	sig1 := randomSignature(8, 2)
-	sig2 := randomSignature(8, 1)
-	sig3 := randomSignature(8, 1)
+	f := NewMinhashLSH16(256, 0.6)
+	// sig1 is different from sig2 and sig3
+	// sig2 and sig3 are identical
+	sig1 := randomSignature(256, 1)
+	sig2 := randomSignature(256, 2)
+	sig3 := randomSignature(256, 2)
 
 	f.Add("sig1", sig1)
 	f.Add("sig2", sig2)
 	f.Add("sig3", sig3)
 	f.Index()
+	// sig1 should be in its own bucket
+	// sig2 and sig3 are in another bucket
 	for i := range f.hashTables {
 		if len(f.hashTables[i]) != 2 {
 			t.Fatal(f.hashTables[i])
@@ -50,7 +54,7 @@ func Test_MinhashLSH(t *testing.T) {
 
 	found := 0
 	for _, key := range f.Query(sig3) {
-		if key == "sig2" || key == "sig3" {
+		if key == "sig3" || key == "sig2" {
 			found++
 		}
 	}
