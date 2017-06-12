@@ -156,6 +156,11 @@ func NewMinhashLSH16(numHash int, threshold float64) *MinhashLSH {
 	return newMinhashLSH(threshold, numHash, 2)
 }
 
+// Params returns the LSH parameters k and l
+func (f *MinhashLSH) Params() (k, l int) {
+	return f.k, f.l
+}
+
 // Add a key with MinHash signature into the index.
 // The key won't be searchable until Index() is called.
 func (f *MinhashLSH) Add(key string, sig Signature) {

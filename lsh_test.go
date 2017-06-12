@@ -64,35 +64,30 @@ func Test_MinhashLSH(t *testing.T) {
 }
 
 func Test_MinhashLSH2(t *testing.T) {
-	minhashLsh := NewMinhashLSH16(256, 0.6)
+	minhashLsh := NewMinhashLSH16(256, 0.5)
 	seed := 1
 	numHash := 256
 	mh := NewMinhash(seed, numHash)
-	words := []string{"hello", "world", "minhash"}
+	words := []string{"hello", "world", "minhash", "one", "two", "three", "four",
+		"five", "six", "seven", "eight", "nine", "ten"}
 	for _, word := range words {
 		mh.Push([]byte(word))
 	}
 	sig1 := mh.Signature()
 	minhashLsh.Add("s1", sig1)
+	minhashLsh.Index()
+	k, l := minhashLsh.Params()
+	t.Logf("Minhash LSH params: k = %d, l = %d", k, l)
 
 	mh = NewMinhash(seed, numHash)
-	words = []string{"hello", "minhash"}
+	words = []string{"one", "two", "three", "four",
+		"five", "six", "seven", "eight", "nine", "ten"}
 	for _, word := range words {
 		mh.Push([]byte(word))
 	}
 	sig2 := mh.Signature()
-	minhashLsh.Add("s2", sig2)
 
-	mh = NewMinhash(seed, numHash)
-	words = []string{"world", "minhash"}
-	for _, word := range words {
-		mh.Push([]byte(word))
-	}
-	sig3 := mh.Signature()
-	minhashLsh.Add("s3", sig3)
-	minhashLsh.Index()
-
-	results := minhashLsh.Query(sig3)
+	results := minhashLsh.Query(sig2)
 	t.Log(results)
 	if len(results) < 1 {
 		t.Fail()
