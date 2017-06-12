@@ -62,3 +62,39 @@ func Test_MinhashLSH(t *testing.T) {
 		t.Fatal("unable to retrieve inserted keys")
 	}
 }
+
+func Test_MinhashLSH2(t *testing.T) {
+	minhashLsh := NewMinhashLSH16(256, 0.6)
+	seed := 1
+	numHash := 256
+	mh := NewMinhash(seed, numHash)
+	words := []string{"hello", "world", "minhash"}
+	for _, word := range words {
+		mh.Push([]byte(word))
+	}
+	sig1 := mh.Signature()
+	minhashLsh.Add("s1", sig1)
+
+	mh = NewMinhash(seed, numHash)
+	words = []string{"hello", "minhash"}
+	for _, word := range words {
+		mh.Push([]byte(word))
+	}
+	sig2 := mh.Signature()
+	minhashLsh.Add("s2", sig2)
+
+	mh = NewMinhash(seed, numHash)
+	words = []string{"world", "minhash"}
+	for _, word := range words {
+		mh.Push([]byte(word))
+	}
+	sig3 := mh.Signature()
+	minhashLsh.Add("s3", sig3)
+	minhashLsh.Index()
+
+	results := minhashLsh.Query(sig3)
+	t.Log(results)
+	if len(results) < 1 {
+		t.Fail()
+	}
+}
