@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -18,7 +19,7 @@ var (
 	ignoreSelfPair           = true
 )
 
-func Benchmark_MinhashLSH_Insert10000(b *testing.B) {
+func Benchmark_Insert10000(b *testing.B) {
 	sigs := make([]Signature, 10000)
 	for i := range sigs {
 		sigs[i] = randomSignature(64, int64(i))
@@ -36,20 +37,18 @@ type valueCountPair struct {
 	count int
 }
 
+var valueCountRegex = regexp.MustCompile(`^(?P<value>.*)____(?P<count>[0-9]+)$`)
+
 func (p *valueCountPair) Parse(str string) error {
-	items := strings.Split(str, "____")
-	if len(items) < 2 {
-		return errors.New("No ____ detected in " + str)
+	indexes := valueCountRegex.FindStringSubmatchIndex(str)
+	if indexes == nil || len(indexes) != 6 {
+		return errors.New("Incorrect value count pair detected: " + str)
 	}
-	if len(items) > 2 {
-		p.value = strings.Join(items[:len(items)-1], "____")
-	} else {
-		p.value = items[0]
-	}
+	p.value = str[indexes[2]:indexes[3]]
 	var err error
-	p.count, err = strconv.Atoi(items[len(items)-1])
+	p.count, err = strconv.Atoi(str[indexes[4]:indexes[5]])
 	if err != nil {
-		panic(err)
+		panic(str + "\n" + err.Error())
 	}
 	return nil
 }
@@ -142,7 +141,7 @@ func (p *pair) String() string {
 	return fmt.Sprintf("%s, %s", p.ID2, p.ID1)
 }
 
-func Benchmark_MinhashLSH_SetFile(b *testing.B) {
+func Benchmark_AllPair(b *testing.B) {
 	sets := readSets(canadianOpenDataFilename, true)
 	setSigs := make([]setSig, 0)
 	for setSig := range createSigantures(sets) {
