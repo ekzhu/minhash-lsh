@@ -84,7 +84,7 @@ func optimalKL(numHash int, t float64) (optK, optL int, fp, fn float64) {
 	return
 }
 
-// Default constructor uses 32 bit hash value
+// NewMinhashLSH is the default constructor uses 32 bit hash value
 var NewMinhashLSH = NewMinhashLSH32
 
 type keys []string
@@ -173,7 +173,7 @@ func (f *MinhashLSH) Add(key string, sig Signature) {
 	var wg sync.WaitGroup
 	wg.Add(len(f.initHashTables))
 	for i := range f.initHashTables {
-		go func(ht initHashTable, hk, key string) {
+		func(ht initHashTable, hk, key string) {
 			if _, exist := ht[hk]; exist {
 				ht[hk] = append(ht[hk], key)
 			} else {
@@ -186,12 +186,12 @@ func (f *MinhashLSH) Add(key string, sig Signature) {
 	wg.Wait()
 }
 
-// Makes all the keys added searchable.
+// Index makes all the keys added searchable.
 func (f *MinhashLSH) Index() {
 	var wg sync.WaitGroup
 	wg.Add(len(f.hashTables))
 	for i := range f.hashTables {
-		go func(htPtr *hashTable, initHtPtr *initHashTable) {
+		func(htPtr *hashTable, initHtPtr *initHashTable) {
 			// Build sorted hash table using buckets from init hash tables
 			initHt := *initHtPtr
 			ht := *htPtr
@@ -212,7 +212,7 @@ func (f *MinhashLSH) Index() {
 	wg.Wait()
 }
 
-// Return candidate keys given the query signature.
+// Query returns candidate keys given the query signature.
 func (f *MinhashLSH) Query(sig Signature) []string {
 	result := make([]string, 0)
 	done := make(chan struct{})
