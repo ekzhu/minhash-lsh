@@ -23,5 +23,6 @@ Install: `go get github.com/ekzhu/minhash-lsh`
 
 ### All Pair Benchmark
 
-`BENCHMARK_SET_FILE=<path to set file> go test -bench Benchmark_AllPair`
-
+```
+minhash-lsh-all-pair -input <set file name>
+```
