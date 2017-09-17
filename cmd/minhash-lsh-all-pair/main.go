@@ -129,7 +129,7 @@ func readSets(setFilename string, firstItemIsID bool) <-chan set {
 		}
 		defer file.Close()
 		scanner := bufio.NewScanner(file)
-		scanner.Buffer(nil, 1024*1024*1024)
+		scanner.Buffer(nil, 4096*1024*1024*8)
 		var count int
 		for scanner.Scan() {
 			items := strings.Split(scanner.Text(), " ")
