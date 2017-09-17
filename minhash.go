@@ -21,8 +21,8 @@ type Minhash struct {
 
 // Initialize a MinHash object with a seed and the number of
 // hash functions.
-func NewMinhash(seed, numHash int) *Minhash {
-	r := rand.New(rand.NewSource(int64(seed)))
+func NewMinhash(seed int64, numHash int) *Minhash {
+	r := rand.New(rand.NewSource(seed))
 	b := binary.BigEndian
 	b1 := make([]byte, hashValueSize)
 	b2 := make([]byte, hashValueSize)
