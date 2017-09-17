@@ -65,7 +65,7 @@ func Test_MinhashLSH(t *testing.T) {
 
 func Test_MinhashLSH2(t *testing.T) {
 	minhashLsh := NewMinhashLSH16(256, 0.5)
-	seed := 1
+	seed := int64(1)
 	numHash := 256
 	mh := NewMinhash(seed, numHash)
 	words := []string{"hello", "world", "minhash", "one", "two", "three", "four",
