@@ -41,6 +41,7 @@ func main() {
 		setSigs = append(setSigs, setSig)
 	}
 	signatureCreationTime := time.Now().Sub(start)
+	fmt.Fprintf(os.Stderr, "Creating Minhash signature time: %.2f seconds\n", signatureCreationTime.Seconds())
 
 	// Indexing
 	start = time.Now()
@@ -50,6 +51,7 @@ func main() {
 	}
 	lsh.Index()
 	indexingTime := time.Now().Sub(start)
+	fmt.Fprintf(os.Stderr, "Indexing time: %.2f seconds\n", indexingTime.Seconds())
 
 	// Querying and output results
 	start = time.Now()
@@ -73,10 +75,7 @@ func main() {
 		panic(err)
 	}
 	searchTime := time.Now().Sub(start)
-
-	fmt.Printf("Creating Minhash signature time: %.2f seconds\n", signatureCreationTime.Seconds())
-	fmt.Printf("Indexing time: %.2f seconds\n", indexingTime.Seconds())
-	fmt.Printf("All pair search time: %.2f seconds\n", searchTime.Seconds())
+	fmt.Fprintf(os.Stderr, "All pair search time: %.2f seconds\n", searchTime.Seconds())
 }
 
 func pointquery() {
