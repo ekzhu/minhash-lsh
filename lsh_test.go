@@ -54,7 +54,7 @@ func Test_MinhashLSH(t *testing.T) {
 
 	found := 0
 	for _, key := range f.Query(sig3) {
-		if key == "sig3" || key == "sig2" {
+		if key.(string) == "sig3" || key.(string) == "sig2" {
 			found++
 		}
 	}

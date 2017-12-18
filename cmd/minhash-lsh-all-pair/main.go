@@ -63,7 +63,7 @@ func main() {
 				if !outputSelfPair && candidateID == s.ID {
 					continue
 				}
-				pairs <- pair{s.ID, candidateID}
+				pairs <- pair{s.ID, candidateID.(string)}
 			}
 		}
 	}()
