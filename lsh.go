@@ -11,10 +11,10 @@ const (
 	integrationPrecision = 0.01
 )
 
-type hashKeyFunc func(Signature) string
+type hashKeyFunc func([]uint64) string
 
 func hashKeyFuncGen(hashValueSize int) hashKeyFunc {
-	return func(sig Signature) string {
+	return func(sig []uint64) string {
 		s := make([]byte, hashValueSize*len(sig))
 		buf := make([]byte, 8)
 		for i, v := range sig {
@@ -163,7 +163,7 @@ func (f *MinhashLSH) Params() (k, l int) {
 
 // Add a key with MinHash signature into the index.
 // The key won't be searchable until Index() is called.
-func (f *MinhashLSH) Add(key interface{}, sig Signature) {
+func (f *MinhashLSH) Add(key interface{}, sig []uint64) {
 	// Generate hash keys
 	Hs := make([]string, f.l)
 	for i := 0; i < f.l; i++ {
@@ -213,7 +213,7 @@ func (f *MinhashLSH) Index() {
 }
 
 // Query returns candidate keys given the query signature.
-func (f *MinhashLSH) Query(sig Signature) []interface{} {
+func (f *MinhashLSH) Query(sig []uint64) []interface{} {
 	set := f.query(sig, f.k)
 	results := make([]interface{}, 0, len(set))
 	for key := range set {
@@ -222,7 +222,7 @@ func (f *MinhashLSH) Query(sig Signature) []interface{} {
 	return results
 }
 
-func (f *MinhashLSH) query(sig Signature, minK int) map[interface{}]bool {
+func (f *MinhashLSH) query(sig []uint64, minK int) map[interface{}]bool {
 	results := make(map[interface{}]bool)
 	for K := f.k; K >= minK; K-- {
 		prefixSize := f.hashValueSize * K

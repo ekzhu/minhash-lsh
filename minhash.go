@@ -1,6 +1,7 @@
 package minhashlsh
 
 import (
+	"bytes"
 	"encoding/binary"
 	"hash/fnv"
 	"math/rand"
@@ -11,15 +12,13 @@ import (
 // The number of byte in a hash value for Minhash
 const hashValueSize = 8
 
-type Signature []uint64
-
-// Represents a MinHash object
+// Minhash represents a MinHash object
 type Minhash struct {
 	mw   *minwise.MinWise
 	seed int64
 }
 
-// Initialize a MinHash object with a seed and the number of
+// NewMinhash initialize a MinHash object with a seed and the number of
 // hash functions.
 func NewMinhash(seed int64, numHash int) *Minhash {
 	r := rand.New(rand.NewSource(seed))
@@ -54,7 +53,7 @@ func (m *Minhash) Push(b []byte) {
 	m.mw.Push(b)
 }
 
-// Export the MinHash signature.
+// Signature exports the MinHash as a list of hash values.
 func (m *Minhash) Signature() []uint64 {
 	return m.mw.Signature()
 }
@@ -67,4 +66,28 @@ func (m *Minhash) Merge(o *Minhash) {
 		panic("Cannot merge Minhash with different seed")
 	}
 	m.mw.Merge(o.mw)
+}
+
+// SigToBytes serializes the signature into byte slice
+func SigToBytes(sig []uint64) []byte {
+	buf := new(bytes.Buffer)
+	for _, v := range sig {
+		binary.Write(buf, binary.BigEndian, v)
+	}
+	return buf.Bytes()
+}
+
+// BytesToSig converts a byte slice into a signature
+func BytesToSig(data []byte) ([]uint64, error) {
+	size := len(data) / hashValueSize
+	sig := make([]uint64, size)
+	buf := bytes.NewReader(data)
+	var v uint64
+	for i := range sig {
+		if err := binary.Read(buf, binary.BigEndian, &v); err != nil {
+			return nil, err
+		}
+		sig[i] = v
+	}
+	return sig, nil
 }
