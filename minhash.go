@@ -3,6 +3,7 @@ package minhashlsh
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"hash/fnv"
 	"math/rand"
 
@@ -66,6 +67,30 @@ func (m *Minhash) Merge(o *Minhash) {
 		panic("Cannot merge Minhash with different seed")
 	}
 	m.mw.Merge(o.mw)
+}
+
+// Jaccard computes the Jaccard similarity between the two Minhashes
+func (m *Minhash) Jaccard(o *Minhash) (float64, error) {
+	if m.seed != o.seed {
+		return 0.0, errors.New("Cannot compute Minhashes with different seed")
+	}
+	return m.mw.Similarity(o.mw), nil
+}
+
+// CountEquals counts the number of matching hash values between the two
+// signatures.
+func CountEquals(sig1, sig2 []uint64) (int, error) {
+	if len(sig1) != len(sig2) {
+		return 0, errors.New("CountEquals cannot be used for signatures of different size")
+	}
+	var count int
+	for i, v1 := range sig1 {
+		v2 := sig2[i]
+		if v1 == v2 {
+			count++
+		}
+	}
+	return count, nil
 }
 
 // SigToBytes serializes the signature into byte slice
