@@ -77,9 +77,9 @@ func (m *Minhash) Jaccard(o *Minhash) (float64, error) {
 	return m.mw.Similarity(o.mw), nil
 }
 
-// CountEquals counts the number of matching hash values between the two
+// SigMatches counts the number of matching hash values between the two
 // signatures.
-func CountEquals(sig1, sig2 []uint64) (int, error) {
+func SigMatches(sig1, sig2 []uint64) (int, error) {
 	if len(sig1) != len(sig2) {
 		return 0, errors.New("CountEquals cannot be used for signatures of different size")
 	}
