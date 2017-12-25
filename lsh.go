@@ -170,8 +170,6 @@ func (f *MinhashLSH) Add(key interface{}, sig []uint64) {
 		Hs[i] = f.hashKeyFunc(sig[i*f.k : (i+1)*f.k])
 	}
 	// Insert keys into the bootstrapping tables
-	var wg sync.WaitGroup
-	wg.Add(len(f.initHashTables))
 	for i := range f.initHashTables {
 		func(ht initHashTable, hk string, key interface{}) {
 			if _, exist := ht[hk]; exist {
@@ -180,10 +178,8 @@ func (f *MinhashLSH) Add(key interface{}, sig []uint64) {
 				ht[hk] = make(keys, 1)
 				ht[hk][0] = key
 			}
-			wg.Done()
 		}(f.initHashTables[i], Hs[i], key)
 	}
-	wg.Wait()
 }
 
 // Index makes all the keys added searchable.
