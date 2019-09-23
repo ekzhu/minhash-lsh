@@ -43,11 +43,16 @@ func Test_MinhashLSH(t *testing.T) {
 	f.Add("sig1", sig1)
 	f.Add("sig2", sig2)
 	f.Add("sig3", sig3)
+
+	// No keys are searchable without calling Index()
+	if len(f.Query(sig3)) != 0 {
+		t.Fatal("No keys should be searchable before calling Index()")
+	}
+
 	f.Index()
-	// sig1 should be in its own bucket
-	// sig2 and sig3 are in another bucket
 	for i := range f.hashTables {
-		if len(f.hashTables[i]) != 2 {
+		// Hash tables should have size 3
+		if len(f.hashTables[i]) != 3 {
 			t.Fatal(f.hashTables[i])
 		}
 	}

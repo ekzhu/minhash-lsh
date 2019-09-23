@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"math"
 	"sort"
-	"sync"
 )
 
 const (
@@ -87,17 +86,15 @@ func optimalKL(numHash int, t float64) (optK, optL int, fp, fn float64) {
 // NewMinhashLSH is the default constructor uses 32 bit hash value
 var NewMinhashLSH = NewMinhashLSH32
 
-type keys []interface{}
-
-// For initial bootstrapping
-type initHashTable map[string]keys
-
-type bucket struct {
+// entry contains the hash key (from minhash signature) and the indexed key
+type entry struct {
 	hashKey string
-	keys    keys
+	key     interface{}
 }
 
-type hashTable []bucket
+// hashTable is a look-up table implemented as a slice sorted by hash keys.
+// Look-up operation is implemented using binary search.
+type hashTable []entry
 
 func (h hashTable) Len() int           { return len(h) }
 func (h hashTable) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
@@ -111,10 +108,10 @@ func (h hashTable) Less(i, j int) bool { return h[i].hashKey < h[j].hashKey }
 type MinhashLSH struct {
 	k              int
 	l              int
-	initHashTables []initHashTable
 	hashTables     []hashTable
 	hashKeyFunc    hashKeyFunc
 	hashValueSize  int
+	numIndexedKeys int
 }
 
 func newMinhashLSH(threshold float64, numHash, hashValueSize int) *MinhashLSH {
@@ -123,17 +120,13 @@ func newMinhashLSH(threshold float64, numHash, hashValueSize int) *MinhashLSH {
 	for i := range hashTables {
 		hashTables[i] = make(hashTable, 0)
 	}
-	initHashTables := make([]initHashTable, l)
-	for i := range initHashTables {
-		initHashTables[i] = make(initHashTable)
-	}
 	return &MinhashLSH{
 		k:              k,
 		l:              l,
 		hashValueSize:  hashValueSize,
-		initHashTables: initHashTables,
 		hashTables:     hashTables,
 		hashKeyFunc:    hashKeyFuncGen(hashValueSize),
+		numIndexedKeys: 0,
 	}
 }
 
@@ -161,56 +154,36 @@ func (f *MinhashLSH) Params() (k, l int) {
 	return f.k, f.l
 }
 
+func (f *MinhashLSH) hashKeys(sig []uint64) []string {
+	hs := make([]string, f.l)
+	for i := 0; i < f.l; i++ {
+		hs[i] = f.hashKeyFunc(sig[i*f.k : (i+1)*f.k])
+	}
+	return hs
+}
+
 // Add a key with MinHash signature into the index.
 // The key won't be searchable until Index() is called.
 func (f *MinhashLSH) Add(key interface{}, sig []uint64) {
 	// Generate hash keys
-	Hs := make([]string, f.l)
-	for i := 0; i < f.l; i++ {
-		Hs[i] = f.hashKeyFunc(sig[i*f.k : (i+1)*f.k])
-	}
-	// Insert keys into the bootstrapping tables
-	for i := range f.initHashTables {
-		func(ht initHashTable, hk string, key interface{}) {
-			if _, exist := ht[hk]; exist {
-				ht[hk] = append(ht[hk], key)
-			} else {
-				ht[hk] = make(keys, 1)
-				ht[hk][0] = key
-			}
-		}(f.initHashTables[i], Hs[i], key)
+	hs := f.hashKeys(sig)
+	// Insert keys into the hash tables by appending.
+	for i := range f.hashTables {
+		f.hashTables[i] = append(f.hashTables[i], entry{hs[i], key})
 	}
 }
 
 // Index makes all the keys added searchable.
 func (f *MinhashLSH) Index() {
-	var wg sync.WaitGroup
-	wg.Add(len(f.hashTables))
 	for i := range f.hashTables {
-		func(htPtr *hashTable, initHtPtr *initHashTable) {
-			// Build sorted hash table using buckets from init hash tables
-			initHt := *initHtPtr
-			ht := *htPtr
-			for hashKey := range initHt {
-				ks, _ := initHt[hashKey]
-				ht = append(ht, bucket{
-					hashKey: hashKey,
-					keys:    ks,
-				})
-			}
-			sort.Sort(ht)
-			*htPtr = ht
-			// Reset the init hash tables
-			*initHtPtr = make(initHashTable)
-			wg.Done()
-		}(&(f.hashTables[i]), &(f.initHashTables[i]))
+		sort.Sort(f.hashTables[i])
 	}
-	wg.Wait()
+	f.numIndexedKeys = len(f.hashTables[0])
 }
 
 // Query returns candidate keys given the query signature.
 func (f *MinhashLSH) Query(sig []uint64) []interface{} {
-	set := f.query(sig, f.k)
+	set := f.query(sig)
 	results := make([]interface{}, 0, len(set))
 	for key := range set {
 		results = append(results, key)
@@ -218,29 +191,23 @@ func (f *MinhashLSH) Query(sig []uint64) []interface{} {
 	return results
 }
 
-func (f *MinhashLSH) query(sig []uint64, minK int) map[interface{}]bool {
+func (f *MinhashLSH) query(sig []uint64) map[interface{}]bool {
+	// Generate hash keys.
+	hashKeys := f.hashKeys(sig)
 	results := make(map[interface{}]bool)
-	for K := f.k; K >= minK; K-- {
-		prefixSize := f.hashValueSize * K
-		// Generate hash keys
-		Hs := make([]string, f.l)
-		for i := 0; i < f.l; i++ {
-			Hs[i] = f.hashKeyFunc(sig[i*f.k : i*f.k+K])
-		}
-		// Query hash tables
-		for i := 0; i < f.l; i++ {
-			ht := f.hashTables[i]
-			hk := Hs[i]
-			k := sort.Search(len(ht), func(x int) bool {
-				return ht[x].hashKey[:prefixSize] >= hk
-			})
-			if k < len(ht) && ht[k].hashKey[:prefixSize] == hk {
-				for j := k; j < len(ht) && ht[j].hashKey[:prefixSize] == hk; j++ {
-					for _, key := range ht[j].keys {
-						if _, exist := results[key]; !exist {
-							results[key] = true
-						}
-					}
+	// Query hash tables using binary search.
+	for i := 0; i < f.l; i++ {
+		// Only search over the indexed keys.
+		hashTable := f.hashTables[i][:f.numIndexedKeys]
+		hashKey := hashKeys[i]
+		k := sort.Search(len(hashTable), func(x int) bool {
+			return hashTable[x].hashKey >= hashKey
+		})
+		if k < len(hashTable) && hashTable[k].hashKey == hashKey {
+			for j := k; j < len(hashTable) && hashTable[j].hashKey == hashKey; j++ {
+				key := hashTable[j].key
+				if _, exist := results[key]; !exist {
+					results[key] = true
 				}
 			}
 		}
