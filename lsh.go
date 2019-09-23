@@ -83,9 +83,6 @@ func optimalKL(numHash int, t float64) (optK, optL int, fp, fn float64) {
 	return
 }
 
-// NewMinhashLSH is the default constructor uses 32 bit hash value
-var NewMinhashLSH = NewMinhashLSH32
-
 // entry contains the hash key (from minhash signature) and the indexed key
 type entry struct {
 	hashKey string
@@ -114,11 +111,11 @@ type MinhashLSH struct {
 	numIndexedKeys int
 }
 
-func newMinhashLSH(threshold float64, numHash, hashValueSize int) *MinhashLSH {
+func newMinhashLSH(threshold float64, numHash, hashValueSize, initSize int) *MinhashLSH {
 	k, l, _, _ := optimalKL(numHash, threshold)
 	hashTables := make([]hashTable, l)
 	for i := range hashTables {
-		hashTables[i] = make(hashTable, 0)
+		hashTables[i] = make(hashTable, 0, initSize)
 	}
 	return &MinhashLSH{
 		k:              k,
@@ -130,24 +127,28 @@ func newMinhashLSH(threshold float64, numHash, hashValueSize int) *MinhashLSH {
 	}
 }
 
-// NewMinhashLSH64 uses 64-bit hash values.
-func NewMinhashLSH64(numHash int, threshold float64) *MinhashLSH {
-	return newMinhashLSH(threshold, numHash, 8)
+// NewMinhashLSH64 uses 64-bit hash values and pre-allocation of hash tables.
+func NewMinhashLSH64(numHash int, threshold float64, initSize int) *MinhashLSH {
+	return newMinhashLSH(threshold, numHash, 8, initSize)
 }
 
-// NewMinhashLSH32 uses 32-bit hash values.
+// NewMinhashLSH32 uses 32-bit hash values and pre-allocation of hash tables.
 // MinHash signatures with 64 bit hash values will have
 // their hash values trimed.
-func NewMinhashLSH32(numHash int, threshold float64) *MinhashLSH {
-	return newMinhashLSH(threshold, numHash, 4)
+func NewMinhashLSH32(numHash int, threshold float64, initSize int) *MinhashLSH {
+	return newMinhashLSH(threshold, numHash, 4, initSize)
 }
 
-// NewMinhashLSH16 uses 16-bit hash values.
+// NewMinhashLSH16 uses 16-bit hash values and pre-allocation of hash tables.
 // MinHash signatures with 64 or 32 bit hash values will have
 // their hash values trimed.
-func NewMinhashLSH16(numHash int, threshold float64) *MinhashLSH {
-	return newMinhashLSH(threshold, numHash, 2)
+func NewMinhashLSH16(numHash int, threshold float64, initSize int) *MinhashLSH {
+	return newMinhashLSH(threshold, numHash, 2, initSize)
 }
+
+// NewMinhashLSH is the default constructor uses 32 bit hash value
+// with pre-allocation of hash tables.
+var NewMinhashLSH = NewMinhashLSH32
 
 // Params returns the LSH parameters k and l
 func (f *MinhashLSH) Params() (k, l int) {
