@@ -45,7 +45,7 @@ func main() {
 
 	// Indexing
 	start = time.Now()
-	lsh := minhashlsh.NewMinhashLSH(minhashSize, threshold)
+	lsh := minhashlsh.NewMinhashLSH(minhashSize, threshold, len(sets))
 	for _, s := range setSigs {
 		lsh.Add(s.ID, s.signature)
 	}
